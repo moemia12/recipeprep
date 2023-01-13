@@ -6,10 +6,19 @@ import {
   TextInput,
   Button,
   Alert,
+    FlatList,
+  ScrollView
 } from 'react-native';
 import {SelectList} from 'react-native-dropdown-select-list';
+import { Configuration, OpenAIApi } from 'openai';
+import { completionFunction } from './chatGPTCall';
+import 'react-native-url-polyfill/auto';
+
+const API_URL = 'http://localhost:3000/api';
 
 const MacroInput = () => {
+
+
   const [selected, setSelected] = React.useState('');
   const [number, onChangeNumber] = React.useState(null);
   const [totalCalories, setTotalCalories] = React.useState('');
@@ -17,7 +26,7 @@ const MacroInput = () => {
   const [carbs, setCarbs] = React.useState('');
   const [fat, setFat] = React.useState('');
   const [exclude, setExclude] = React.useState('');
-
+  const [response, setResponse] = React.useState('');
   const [prompt, setPrompt] = React.useState('');
 
   const data = [{value: 'Breakfast'}, {value: 'Lunch'}, {value: 'Dinner'}];
@@ -29,11 +38,50 @@ const MacroInput = () => {
       `Give me a ${selected} recipe. It should have the following calorie profile: ${protein} grams of protein, ${carbs} grams of carbohydrates, and ${fat} grams of fat. Please exclude the following ingredients: ${exclude}`,
     );
 
-    Alert.alert(prompt, '✅');
+    //Alert.alert(prompt, '✅');
   };
 
+  async function onSubmit(prompt) {
+
+    // try {
+    //      const chatResponse = await completionFunction(prompt)
+    
+    // setResponse(chatResponse)
+
+    // } catch (error){
+    //   console.log(error)
+    // }
+  
+ 
+
+  try {
+    const response = await fetch(`${API_URL}/generate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({prompt: prompt}),
+    });
+
+    const data = await response.json();
+    if (response.status !== 200) {
+      throw (
+        data.error || new Error(`Request failed with status ${response.status}`)
+      );
+    }
+
+      setResponse(data.result);
+      console.log(response, '🛎')
+
+  } catch (error) {
+    // Consider implementing your own error handling logic here
+    console.error(error);
+    alert(error.message);
+  }
+}
+
   return (
-    <View>
+    <ScrollView>
       {/* Total Calories
       <TextInput
         style={styles.input}
@@ -90,9 +138,11 @@ const MacroInput = () => {
 
       <Button
         title="Submit"
-        onPress={() =>
-          recipePrompt(protein, carbs, fat, selected, exclude, prompt)
-        }
+        onPress={() => {
+          recipePrompt(protein, carbs, fat, selected, exclude, prompt);
+          // handleSubmit();
+          onSubmit(prompt);
+        }}
       />
 
       <View>
@@ -100,10 +150,15 @@ const MacroInput = () => {
           Give me a {selected} recipe. It should have the following calorie
           profile : {protein} grams of protein, {carbs} grams of carbohydrates,
           and {fat} grams of fat. Please exclude the following ingredients:
-          {exclude}
+          {exclude} {response}
         </Text>
       </View>
-    </View>
+      {/* <FlatList
+        data={response}
+        renderItem={({item}) => <Text>{item.text}</Text>}
+        keyExtractor={item => item.id}
+          /> */}
+    </ScrollView>
   );
 };
 
@@ -124,7 +179,10 @@ const styles = StyleSheet.create({
   },
   outputText: {
     fontSize: 20,
-  },
+    },
+    recipe: {
+      marginTop: 50,
+  }
 });
 
 export default MacroInput;
