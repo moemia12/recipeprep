@@ -35,7 +35,7 @@ const MacroInput = () => {
     console.log(prompt, '💊');
 
     setPrompt(
-      `Give me a ${selected} recipe. It should have the following calorie profile: ${protein} grams of protein, ${carbs} grams of carbohydrates, and ${fat} grams of fat. Please exclude the following ingredients: ${exclude}`,
+      `Give me a ${selected} recipe. It should have the following calorie profile: ${protein} grams of protein, ${carbs} grams of carbohydrates, and ${fat} grams of fat. Please exclude the following ingredients: ${exclude} Also please respond in JSON format`,
     );
 
     //Alert.alert(prompt, '✅');
@@ -70,6 +70,7 @@ const MacroInput = () => {
       );
     }
 
+      console.log(data.result, '✅');
       setResponse(data.result);
       console.log(response, '🛎')
 
