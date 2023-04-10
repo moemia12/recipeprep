@@ -1,13 +1,6 @@
 import React from 'react';
 import {
   SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  useColorScheme,
-  View,
-  TextInput,
 } from 'react-native';
 import { SelectList } from 'react-native-dropdown-select-list';
 import Profile from './components/Profile';

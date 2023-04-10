@@ -5,29 +5,25 @@ import {
   View,
   TextInput,
   Button,
-  Alert,
-    FlatList,
-  ScrollView
+  ScrollView,
 } from 'react-native';
-import {SelectList} from 'react-native-dropdown-select-list';
-import { Configuration, OpenAIApi } from 'openai';
-import { completionFunction } from './chatGPTCall';
+import { SelectList } from 'react-native-dropdown-select-list';
+import {ActivityIndicator} from 'react-native';
+
 import 'react-native-url-polyfill/auto';
 
 const API_URL = 'http://localhost:3000/api';
 
 const MacroInput = () => {
-
-
   const [selected, setSelected] = React.useState('');
-  const [number, onChangeNumber] = React.useState(null);
-  const [totalCalories, setTotalCalories] = React.useState('');
+  const [number] = React.useState(null);
   const [protein, setProtien] = React.useState('');
   const [carbs, setCarbs] = React.useState('');
   const [fat, setFat] = React.useState('');
   const [exclude, setExclude] = React.useState('');
   const [response, setResponse] = React.useState('');
   const [prompt, setPrompt] = React.useState('');
+  const [loading, setLoading] = React.useState(false);
 
   const data = [{value: 'Breakfast'}, {value: 'Lunch'}, {value: 'Dinner'}];
 
@@ -37,23 +33,9 @@ const MacroInput = () => {
     setPrompt(
       `Give me a ${selected} recipe. It should have the following calorie profile: ${protein} grams of protein, ${carbs} grams of carbohydrates, and ${fat} grams of fat. Please exclude the following ingredients: ${exclude}`,
     );
-
-    //Alert.alert(prompt, '✅');
   };
 
   async function onSubmit(prompt) {
-
-    // try {
-    //      const chatResponse = await completionFunction(prompt)
-    
-    // setResponse(chatResponse)
-
-    // } catch (error){
-    //   console.log(error)
-    // }
-  
- 
-
   try {
     const response = await fetch(`${API_URL}/generate`, {
       method: 'POST',
@@ -69,95 +51,120 @@ const MacroInput = () => {
         data.error || new Error(`Request failed with status ${response.status}`)
       );
     }
-
       setResponse(data.result);
-      console.log(response, '🛎')
+      console.log(data.result, '🛎')
 
   } catch (error) {
-    // Consider implementing your own error handling logic here
     console.error(error);
     alert(error.message);
   }
+  }
+
+function formatDataWithBoldTags(response) {
+  let formattedData = response.replace(/Ingredients:/g, '**Ingredients:**');
+  formattedData = formattedData.replace(/Instructions:/g, '**Instructions:**');
+  formattedData = formattedData.replace(/Nutritional Information/g || /Nutritional Value/g || /Nutrition Information/g, '**Nutritional Information**',);
+  formattedData = formattedData.replace(/- [\w\d\s.,-]+/g, '**$&**');
+
+  const formattedTextArray = formattedData.split('**');
+
+  return (
+    <Text style={{marginBottom: 100}}>
+      {formattedTextArray.map((text, index) => {
+        if (
+          text === 'Ingredients:' ||
+          text === 'Instructions:' ||
+          text === 'Nutritional Information'
+        ) {
+          return (
+            <Text key={index} style={styles.responseHeaders}>
+              {text}
+            </Text>
+          );
+        } else {
+          return <Text key={index}>{text}</Text>;
+        }
+      })}
+    </Text>
+  );
 }
 
   return (
     <ScrollView>
-      {/* Total Calories
-      <TextInput
-        style={styles.input}
-        onChangeText={onChangeNumber}
-        value={number}
-        placeholder="Total Calories"
-        keyboardType="numeric"
-        placeholderTextColor="black"
-      /> */}
-      {/* Protien */}
-      <TextInput
-        style={styles.input}
-        onChangeText={setProtien}
-        value={number}
-        placeholder="Protien"
-        keyboardType="numeric"
-        placeholderTextColor="black"
-      />
-      {/* Carbs */}
-      <TextInput
-        style={styles.input}
-        onChangeText={setCarbs}
-        value={number}
-        placeholder="Carbs"
-        keyboardType="numeric"
-        placeholderTextColor="black"
-      />
-      {/* Fat */}
-      <TextInput
-        style={styles.input}
-        onChangeText={setFat}
-        value={number}
-        placeholder="Fat"
-        keyboardType="numeric"
-        placeholderTextColor="black"
-      />
-      {/* Meal Type */}
-      <SelectList
-        setSelected={val => setSelected(val)}
-        data={data}
-        save="save"
-        boxStyles={styles.dropdown}
-        placeholder="Meal Type"
-      />
-      {/* Exclude */}
-      <TextInput
-        style={styles.input}
-        onChangeText={setExclude}
-        value={number}
-        placeholder="Exlude"
-        keyboardType="numeric"
-        placeholderTextColor="black"
-      />
-
+      <View style={styles.inputContainer}>
+        {/* Protien */}
+        <TextInput
+          style={styles.input}
+          onChangeText={setProtien}
+          value={number}
+          placeholder="Protien"
+          keyboardType="numeric"
+          placeholderTextColor="black"
+        />
+        {/* Carbs */}
+        <TextInput
+          style={styles.input}
+          onChangeText={setCarbs}
+          value={number}
+          placeholder="Carbs"
+          keyboardType="numeric"
+          placeholderTextColor="black"
+        />
+        {/* Fat */}
+        <TextInput
+          style={styles.input}
+          onChangeText={setFat}
+          value={number}
+          placeholder="Fat"
+          keyboardType="numeric"
+          placeholderTextColor="black"
+        />
+        {/* Exclude */}
+        <TextInput
+          style={styles.input}
+          onChangeText={setExclude}
+          value={number}
+          placeholder="Exlude"
+          keyboardType="numeric"
+          placeholderTextColor="black"
+        />
+        {/* Meal Type */}
+        <SelectList
+          setSelected={val => setSelected(val)}
+          data={data}
+          save="save"
+          boxStyles={styles.dropdown}
+          placeholder="Meal Type"
+        />
+      </View>
       <Button
         title="Submit"
-        onPress={() => {
+        onPress={async () => {
+          setLoading(true);
           recipePrompt(protein, carbs, fat, selected, exclude, prompt);
-          // handleSubmit();
-          onSubmit(prompt);
+          await onSubmit(prompt);
+          setLoading(false);
         }}
       />
+      {loading && (
+        <Text style={styles.loading}>
+          Ok let's get you a recipe...
+          <ActivityIndicator
+            size="small"
+            color="black"
+          />
+        </Text>
+      )}
 
-      <View>
-        <Text style={styles.outputText}>
+      <View style={styles.promptContainer}>
+        <Text>
           Give me a {selected} recipe. It should have the following calorie
           profile : {protein} grams of protein, {carbs} grams of carbohydrates,
-          and {fat} grams of fat. Please exclude the following ingredients:
-          {exclude} {response}
+          and {fat} grams of fat. Please exclude the following ingredients:{' '}
+          {exclude}
         </Text>
+        <Text>{formatDataWithBoldTags(response)}</Text>
       </View>
-      {/* <FlatList
-        data={response}
-        renderItem={({item}) => <Text>{item.text}</Text>}
-        keyExtractor={item => item.id}
-          /> */}
     </ScrollView>
   );
 };
@@ -171,18 +178,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 10,
   },
-  dropdown: {
-    marginBottom: 20,
+  promptContainer: {
+    padding: 10,
   },
-  textInputPlaceholder: {
-    color: 'black',
+  inputContainer: {
+    padding: 10,
   },
-  outputText: {
-    fontSize: 20,
-    },
-    recipe: {
-      marginTop: 50,
+  responseHeaders: {
+    fontWeight: 'bold'
+  },
+  loading: {
+    fontSize: 15,
+    textAlign: 'center',
   }
+
 });
 
 export default MacroInput;
